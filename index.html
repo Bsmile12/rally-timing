@@ -109,7 +109,7 @@
   <h1>Rally Timing Calculator</h1>
 
   <p>
-    Enter marching time (seconds) for up to 10 players.<br />
+    Enter marching time (seconds) for up to 6 players.<br />
     The longest marching time opens first (5-minute rally).
   </p>
 
@@ -184,12 +184,13 @@
 
     /* ===== Table Logic ===== */
     function initTable() {
-      rows.innerHTML = "";
-      for (let i = 0; i < 10; i++) {
-        rows.insertAdjacentHTML("beforeend", createRow());
-      }
-      refreshDropdowns();
+    rows.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      rows.insertAdjacentHTML("beforeend", createRow());
     }
+    refreshDropdowns();
+    }
+
 
     function refreshDropdowns() {
       const used = Array.from(document.querySelectorAll(".player"))
