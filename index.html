@@ -267,7 +267,7 @@
         text += `${leader.name} opens first.\n`;
         lastPlayers.slice(1).forEach(p => {
           const diff = leader.marching - p.marching;
-          text += `${p.name} opens at ${formatTime(MAX_TIME - diff)} after ${leader.name}.\n`;
+          text += `${p.name} opens at +${formatTime(MAX_TIME - diff)} after ${leader.name}.\n`;
         });
       }
 
@@ -310,4 +310,5 @@
   </script>
 </body>
 </html>
+
 
