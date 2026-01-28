@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rally Timing Calculator</title>
+
+  <style>
+    /* ===== Base ===== */
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: #e5e7eb;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #38bdf8;
+    }
+
+    p {
+      color: #cbd5f5;
+      margin-bottom: 20px;
+    }
+
+    /* ===== Table ===== */
+    table {
+      width: 100%;
+      max-width: 760px;
+      border-collapse: collapse;
+      background: #0f172a;
+      margin-bottom: 15px;
+    }
+
+    th,
+    td {
+      border: 1px solid #334155;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background: #1e293b;
+    }
+
+    /* ===== Inputs ===== */
+    input,
+    select {
+      width: 160px;
+      padding: 6px;
+      font-size: 14px;
+      text-align: center;
+
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+      border-radius: 4px;
+    }
+
+    input::placeholder {
+      color: #94a3b8;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.6);
+    }
+
+    select option {
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    /* ===== Buttons ===== */
+    button {
+      margin-top: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .calc-btn {
+      background: #38bdf8;
+      color: #020617;
+      margin-right: 6px;
+    }
+
+    .clear-btn {
+      background: #334155;
+      color: #e5e7eb;
+      margin-right: 6px;
+    }
+
+    /* ===== Summary Box ===== */
+    .note {
+      margin-top: 20px;
+      max-width: 760px;
+      font-size: 14px;
+      color: #94a3b8;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Rally Timing Calculator</h1>
+
+  <p>
+    Enter marching time (seconds) for up to 10 players.<br />
+    The longest marching time opens first (5-minute rally).
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Marching time (sec)</th>
+        <th>Rally open time</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <button class="calc-btn" onclick="calculate()">Calculate</button>
+  <button class="clear-btn" onclick="clearAll()">Clear</button>
+  <br />
+
+  <button class="calc-btn" onclick="copySummary('standard')">Summary (Standard)</button>
+  <button class="calc-btn" onclick="copySummary('order')">Summary (Order)</button>
+  <button class="calc-btn" onclick="copySummary('short')">Summary (Short)</button>
+  <button class="calc-btn" onclick="copySummary('line')">Summary (1 Line)</button>
+
+  <pre id="summaryBox" class="note"></pre>
+
+  <script>
+    /* ===== Constants ===== */
+    const MAX_TIME = 300;
+    const rows = document.getElementById("rows");
+
+    const PLAYER_NAMES = [
+      "SERAPHIM ᴹᴬᴺᴳᴼ",
+      "이슬이",
+      "Toad",
+      "Demiurge the 1",
+      "Panda",
+      "Grumpy Gramps",
+      "ʟɛɴ˖ғʌĸı",
+      "Jugo Assassin",
+      "Grimoire",
+      "Lady misery"
+    ];
+
+    let lastPlayers = [];
+
+    /* ===== Init ===== */
+    initTable();
+    document.addEventListener("change", refreshDropdowns);
+
+    /* ===== Helpers ===== */
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    function createRow() {
+      return `
+        <tr>
+          <td>
+            <select class="player">
+              <option value="">-</option>
+            </select>
+          </td>
+          <td>
+            <input type="number" class="marching" min="0" placeholder="sec">
+          </td>
+          <td class="result">-</td>
+        </tr>
+      `;
+    }
+
+    /* ===== Table Logic ===== */
+    function initTable() {
+      rows.innerHTML = "";
+      for (let i = 0; i < 10; i++) {
+        rows.insertAdjacentHTML("beforeend", createRow());
+      }
+      refreshDropdowns();
+    }
+
+    function refreshDropdowns() {
+      const used = Array.from(document.querySelectorAll(".player"))
+        .map(s => s.value)
+        .filter(Boolean);
+
+      document.querySelectorAll(".player").forEach(select => {
+        const current = select.value;
+        select.innerHTML = `<option value="">-</option>`;
+
+        PLAYER_NAMES.forEach(name => {
+          if (!used.includes(name) || name === current) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            if (name === current) opt.selected = true;
+            select.appendChild(opt);
+          }
+        });
+      });
+    }
+
+    /* ===== Calculate ===== */
+    function calculate() {
+      const players = [];
+
+      document.querySelectorAll("#rows tr").forEach(row => {
+        const name = row.querySelector(".player").value || "-";
+        const marching = parseInt(row.querySelector(".marching").value, 10);
+        if (!isNaN(marching)) players.push({ name, marching });
+      });
+
+      if (players.length < 2) {
+        alert("Please enter at least 2 players.");
+        return;
+      }
+
+      players.sort((a, b) => b.marching - a.marching);
+      lastPlayers = players;
+
+      rows.innerHTML = "";
+      const max = players[0].marching;
+
+      players.forEach(p => {
+        const openTime =
+          p.marching === max
+            ? "Open first"
+            : formatTime(MAX_TIME - (max - p.marching));
+
+        rows.insertAdjacentHTML(
+          "beforeend",
+          `
+          <tr>
+            <td>${p.name}</td>
+            <td>${p.marching}</td>
+            <td>${openTime}</td>
+          </tr>
+        `
+        );
+      });
+    }
+
+    /* ===== Summary ===== */
+    function copySummary(type) {
+      if (!lastPlayers.length) {
+        alert("Please calculate first.");
+        return;
+      }
+
+      const leader = lastPlayers[0];
+      let text = "";
+
+      if (type === "standard") {
+        text += `${leader.name} opens first.\n`;
+        lastPlayers.slice(1).forEach(p => {
+          const diff = leader.marching - p.marching;
+          text += `${p.name} opens at +${formatTime(MAX_TIME - diff)} after ${leader.name}.\n`;
+        });
+      }
+
+      if (type === "order") {
+        text += `1st: ${leader.name} (open)\n`;
+        lastPlayers.slice(1).forEach((p, i) => {
+          const diff = leader.marching - p.marching;
+          text += `${i + 2}th: ${p.name} ${formatTime(MAX_TIME - diff)}\n`;
+        });
+      }
+
+      if (type === "short") {
+        text += `${leader.name} first\n`;
+        lastPlayers.slice(1).forEach(p => {
+          const diff = leader.marching - p.marching;
+          text += `${p.name} +${formatTime(MAX_TIME - diff)}\n`;
+        });
+      }
+
+      if (type === "line") {
+        text = lastPlayers
+          .map((p, i) => {
+            if (i === 0) return `${p.name} first`;
+            const diff = leader.marching - p.marching;
+            return `${p.name} +${formatTime(MAX_TIME - diff)}`;
+          })
+          .join(" | ");
+      }
+
+      document.getElementById("summaryBox").textContent = text.trim();
+      navigator.clipboard.writeText(text.trim());
+    }
+
+    /* ===== Clear ===== */
+    function clearAll() {
+      lastPlayers = [];
+      initTable();
+      document.getElementById("summaryBox").textContent = "";
+    }
+  </script>
+</body>
+</html>
