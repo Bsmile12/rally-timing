@@ -267,7 +267,7 @@
         text += `${leader.name} opens first.\n`;
         lastPlayers.slice(1).forEach(p => {
           const diff = leader.marching - p.marching;
-          text += `${p.name} opens at +${formatTime(MAX_TIME - diff)} after ${leader.name}.\n`;
+          text += `${p.name} opens at ${formatTime(MAX_TIME - diff)} after ${leader.name}.\n`;
         });
       }
 
@@ -283,7 +283,7 @@
         text += `${leader.name} first\n`;
         lastPlayers.slice(1).forEach(p => {
           const diff = leader.marching - p.marching;
-          text += `${p.name} +${formatTime(MAX_TIME - diff)}\n`;
+          text += `${p.name} ${formatTime(MAX_TIME - diff)}\n`;
         });
       }
 
@@ -292,7 +292,7 @@
           .map((p, i) => {
             if (i === 0) return `${p.name} first`;
             const diff = leader.marching - p.marching;
-            return `${p.name} +${formatTime(MAX_TIME - diff)}`;
+            return `${p.name} ${formatTime(MAX_TIME - diff)}`;
           })
           .join(" | ");
       }
@@ -310,3 +310,4 @@
   </script>
 </body>
 </html>
+
